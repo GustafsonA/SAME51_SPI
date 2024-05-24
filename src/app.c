@@ -114,6 +114,7 @@ bool ADCcycle = true;
 bool configwrite;
 bool isRTCTimerExpired;
 bool ADC_IRQ;
+bool once = true;
 
 float resoloution = 8388608;
 
@@ -128,23 +129,25 @@ static void _APP_Commands_REGISTERs(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char*
 static void _APP_Commands_READ_REG(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);
 static void _APP_Commands_WRITE_REG(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);
 static void _APP_Commands_SINGLE(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);
-static void _APP_Commands_CONTINUOUS(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);
+static void _APP_Commands_SCAN(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);
 static void _APP_Commands_CONVERT(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);
 static void _APP_Commands_STANDBY(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);
 static void _APP_Commands_SHUTDOWN(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);
 static void _APP_Commands_DEFAULT(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);
 static void _APP_Commands_about(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);
 
+bool _APP_Commands_SCAN_mode();
+
 
 
 //----------------------Commands----------------------// 
-static const SYS_CMD_DESCRIPTOR appCmdTbl[] ={/* CMD            FUNCTION                            DESCRIPTION                  */
+static const SYS_CMD_DESCRIPTOR appCmdTbl[] = {/* CMD            FUNCTION                            DESCRIPTION                  */
     {"ADC", _APP_Commands_ADC, "       : View all ADC configuration commands"},
     {"REGISTERs", _APP_Commands_REGISTERs, " : View all accessible internal ADC registers"},
     {"WRITE", _APP_Commands_WRITE_REG, "     : Write the specified register"},
     {"READ", _APP_Commands_READ_REG, "      : Read the specified register"},
     {"SINGLE", _APP_Commands_SINGLE, "    : Get a single conversion on the specified channel"},
-    {"CONTINUOUS", _APP_Commands_CONTINUOUS, ": Get continuous conversion on the specified channel"},
+    {"SCAN", _APP_Commands_SCAN, ": Get continuous conversion on the specified channel"},
     {"CONVERT", _APP_Commands_CONVERT, "   : ADC Conversion Start/Restart Fast Command"},
     {"STANDBY", _APP_Commands_STANDBY, "   : ADC Standby Mode Fast Command"},
     {"SHUTDOWN", _APP_Commands_SHUTDOWN, "  : ADC Shutdown Mode Fast Command"},
@@ -180,17 +183,14 @@ void APP_Initialize(void) {
          */
 
     }
-    
+
 }
-
-
 
 void EIC_Pin14Callback(uintptr_t context) {
     // This means an interrupt condition has been sensed on EIC Pin 27.
-   
+
     ADC_IRQ = true;
 }
-
 
 static void rtcEventHandler(RTC_TIMER32_INT_MASK intCause, uintptr_t context) {
     if (intCause & RTC_TIMER32_INT_MASK_CMP0) {
@@ -509,8 +509,8 @@ void _APP_Commands_READ_REG(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv) 
     } else {
         SYS_CONSOLE_MESSAGE("Error! Invalid Register\r\n");
     }
-    
-    
+
+
     SPI_CS_Set();
 
 }
@@ -683,7 +683,6 @@ void _APP_Commands_SINGLE(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv) {
     rxData[4] = 0;
 
 
-
     txData[1] = APP_CMD_CONVERSION;
     SYS_CONSOLE_PRINT("Sending: 0x%x\r\n", txData[1]);
     struct ADCvariable getvalue1;
@@ -701,9 +700,6 @@ void _APP_Commands_SINGLE(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv) {
 
     while (SERCOM1_SPI_IsTransmitterBusy() == true);
 
-    while (!isRTCTimerExpired == true) {
-        RTC_Timer32CallbackRegister(rtcEventHandler, 0);
-    }
 
     SERCOM1_SPI_CallbackRegister(&SPIEventHandler, (uintptr_t) NULL);
 
@@ -741,23 +737,148 @@ void _APP_Commands_SINGLE(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv) {
 
         SYS_CONSOLE_PRINT(ESC_GREEN "ADC voltage = %d.%05d V \r\n" ESC_RESETCOLOR, (int) getvalue1.input_voltage, (int) ((getvalue1.input_voltage - (int) getvalue1.input_voltage)*100000.0));
     }
-    //getvalue1.adc_count = *APP_Register_Buffer;
 
+    while (!SPI_INT2_Set());
+
+    SERCOM1_SPI_CallbackRegister(&SPIEventHandler, (uintptr_t) NULL);
+    SPI_CS_Clear();
+
+    if (SERCOM1_SPI_Write(&txData[1], 1)) {
+        SYS_CONSOLE_MESSAGE("Initializing ADC single-shot...\r\n");
+    } else {
+        SYS_CONSOLE_MESSAGE("Error initializing ADC single-shot!\r\n");
+        exit(0);
+    }
+
+    while (SERCOM1_SPI_IsTransmitterBusy() == true);
+
+
+    SERCOM1_SPI_CallbackRegister(&SPIEventHandler, (uintptr_t) NULL);
+
+
+    rxData[0] = 0;
+    rxData[1] = 0;
+    rxData[2] = 0;
+    rxData[3] = 0;
+    rxData[4] = 0;
+
+    txData[1] = APP_ADC_READ_ADCDATA;
+    SYS_CONSOLE_PRINT("Sending: 0x%x\r\n", txData[1]);
+    SPI_CS_Clear();
+    if (SERCOM1_SPI_WriteRead(&txData[1], 1, rxData, 4)) {
+        SYS_CONSOLE_MESSAGE("Reading single-shot conversion...\r\n");
+    }
+    while (SERCOM1_SPI_IsBusy() == true);
+
+    ADCval[2] = ((int32_t) rxData[3]);
+    ADCval[2] = ADCval[2] | ((int32_t) (rxData[2]) << 8);
+    ADCval[2] = ADCval[2] | ((int32_t) (rxData[1]) << 16);
+
+
+    SYS_CONSOLE_PRINT("Receiving: 0x%x\r\n", ADCval[2]);
+    SYS_CONSOLE_PRINT("Receiving: %d\r\n", (int) ADCval[2]);
+    if (getbit(ADCval[2], 23)) {
+        ADCval[2] = ADCval[2] | (255U << 24);
+        SYS_CONSOLE_MESSAGE("Reading a negative number -#\r\n");
+        SYS_CONSOLE_PRINT("Receiving: %x\r\n", ADCval[2]);
+        getvalue1.input_voltage = (float) ADCval[2] * ref_voltage / 8388608U;
+
+        SYS_CONSOLE_PRINT(ESC_GREEN "ADC voltage = %d.%05d V \r\n" ESC_RESETCOLOR, (int) getvalue1.input_voltage, ~(int) ((getvalue1.input_voltage - (int) getvalue1.input_voltage)*100000.0));
+    } else {
+        getvalue1.input_voltage = (float) ADCval[2] * ref_voltage / 8388608U;
+
+        SYS_CONSOLE_PRINT(ESC_GREEN "ADC voltage = %d.%05d V \r\n" ESC_RESETCOLOR, (int) getvalue1.input_voltage, (int) ((getvalue1.input_voltage - (int) getvalue1.input_voltage)*100000.0));
+    }
 
     SYS_CONSOLE_MESSAGE("ADC going into SleepMode state! \r\n");
 }
 
+static void _APP_Commands_SCAN(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv) {
 
-static void _APP_Commands_CONTINUOUS(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv){
-    
-    EIC_CallbackRegister(EIC_PIN_14, EIC_Pin14Callback, 0);
+    int i = 0;
+
+    if (once) {
+        once = false;
+        _APP_Commands_SCAN_mode();
+    } else {
+
+    }
+
+
+
+
+    for (i = 0; i < 50; i++) {
+        struct ADCvariable getvalue1;
+
+        rxData[0] = 0;
+        rxData[1] = 0;
+        rxData[2] = 0;
+        rxData[3] = 0;
+        rxData[4] = 0;
+
+        txData[1] = APP_ADC_READ_ADCDATA;
+        //SYS_CONSOLE_PRINT("Sending: 0x%x\r\n", txData[1]);
+        SPI_CS_Clear();
+        if (SERCOM1_SPI_WriteRead(&txData[1], 1, rxData, 4)) {
+            //SYS_CONSOLE_MESSAGE("Reading single-shot conversion...\r\n");
+        }
+        while (SERCOM1_SPI_IsBusy() == true);
+
+        ADCval[2] = ((int32_t) rxData[3]);
+        ADCval[2] = ADCval[2] | ((int32_t) (rxData[2]) << 8);
+        ADCval[2] = ADCval[2] | ((int32_t) (rxData[1]) << 16);
+
+
+        //SYS_CONSOLE_PRINT("Receiving: 0x%x\r\n", ADCval[2]);
+       // SYS_CONSOLE_PRINT("Receiving: %d\r\n", (int) ADCval[2]);
+        if (getbit(ADCval[2], 23)) {
+            ADCval[2] = ADCval[2] | (255U << 24);
+            //SYS_CONSOLE_MESSAGE("Reading a negative number -#\r\n");
+            //SYS_CONSOLE_PRINT("Receiving: %x\r\n", ADCval[2]);
+            getvalue1.input_voltage = (float) ADCval[2] * ref_voltage / 8388608U;
+
+            SYS_CONSOLE_PRINT(ESC_GREEN "ADC voltage = %d,%05d V \r\n " ESC_RESETCOLOR, (int) getvalue1.input_voltage, ~(int) ((getvalue1.input_voltage - (int) getvalue1.input_voltage)*100000.0));
+        } else {
+            getvalue1.input_voltage = (float) ADCval[2] * ref_voltage / 8388608U;
+
+            SYS_CONSOLE_PRINT(ESC_GREEN "ADC voltage = %d,%05d V \r\n" ESC_RESETCOLOR, (int) getvalue1.input_voltage, (int) ((getvalue1.input_voltage - (int) getvalue1.input_voltage)*100000.0));
+        }
+
+        while (PORT_PinRead(SPI_INT2_PIN));
+
+    }
+    //*********Read the ADC Continuous data*********//
+
+    SYS_CONSOLE_MESSAGE("\r\n");
+    SYS_CONSOLE_MESSAGE("ADC going into SleepMode state! \r\n");
     SPI_CS_Set();
-    struct ADCvariable getvalue3;
-    
-    int i = 1; 
-    
+}
+
+bool _APP_Commands_SCAN_mode() {
+    SPI_CS_Set();
+
+
+    txData[1] = APP_CMD_CONVERSION;
+    SYS_CONSOLE_PRINT("Sending: 0x%x\r\n", txData[1]);
+    struct ADCvariable getvalue1;
+
+
+    SERCOM1_SPI_CallbackRegister(&SPIEventHandler, (uintptr_t) NULL);
+    SPI_CS_Clear();
+
+    if (SERCOM1_SPI_Write(&txData[1], 1)) {
+        SYS_CONSOLE_MESSAGE("Initializing ADC single-shot...\r\n");
+    } else {
+        SYS_CONSOLE_MESSAGE("Error initializing ADC single-shot!\r\n");
+        exit(0);
+    }
+
+    while (SERCOM1_SPI_IsTransmitterBusy() == true);
+
+
+    SERCOM1_SPI_CallbackRegister(&SPIEventHandler, (uintptr_t) NULL);
     //*********Putting the ADC in Continuous mode*********//
-    SYS_CONSOLE_MESSAGE("Setting the ADC in continuous mode...\r\n"); 
+    SYS_CONSOLE_MESSAGE("Setting the ADC in continuous mode...\r\n");
 
     txData[5] = 0xC0; // CONTINUOS MODE
 
@@ -777,55 +898,14 @@ static void _APP_Commands_CONTINUOUS(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char
     }
     while (SERCOM1_SPI_IsTransmitterBusy() == true);
     SPI_CS_Clear();
-    
+
     if (SERCOM1_SPI_Write(&txData[5], 1)) {
 
     }
     while (SERCOM1_SPI_IsTransmitterBusy() == true);
-    SPI_CS_Clear();
-    //*********Read the ADC Continuous data*********//
-    while (ADC_IRQ) {
-        ADC_IRQ = false;
-        SPI_CS_Clear();
 
-        if (SERCOM1_SPI_Read(rxData, 3)) {
-
-        }
-        
-        ADCval[i] = ((int32_t) rxData[3]);
-        ADCval[i] = ADCval[i] | ((int32_t) (rxData[2]) << 8);
-        ADCval[i] = ADCval[i] | ((int32_t) (rxData[1]) << 16);
-
-
-
-        i++;
-    }
-
-    for (i != 0; i > 1; i--) {
-        
-        SYS_CONSOLE_PRINT("Receiving: 0x%x\r\n", ADCval[i]);
-        SYS_CONSOLE_PRINT("Receiving: %d\r\n", (int) ADCval[i]);
-        if (getbit(ADCval[i], 23)) {
-            ADCval[i] = ADCval[i] | (255U << 24);
-            SYS_CONSOLE_MESSAGE("Reading a negative number -#\r\n");
-            SYS_CONSOLE_PRINT("Receiving: %x\r\n", ADCval[i]);
-            getvalue3.input_voltage = (float) ADCval[i] * ref_voltage / 8388608U;
-
-            SYS_CONSOLE_PRINT(ESC_GREEN "ADC voltage = %d.%05d V \r\n" ESC_RESETCOLOR, (int) getvalue3.input_voltage, ~(int) ((getvalue3.input_voltage - (int) getvalue3.input_voltage)*100000.0));
-        } else {
-            getvalue3.input_voltage = (float) ADCval[i] * ref_voltage / 8388608U;
-
-            SYS_CONSOLE_PRINT(ESC_GREEN "ADC voltage = %d.%05d V \r\n" ESC_RESETCOLOR, (int) getvalue3.input_voltage, (int) ((getvalue3.input_voltage - (int) getvalue3.input_voltage)*100000.0));
-        }
-
-    }    
-
-
-    
     SPI_CS_Set();
 }
-
-
 
 static void _APP_Commands_CONVERT(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv) {
     txData[1] = APP_CMD_CONVERSION;
@@ -903,12 +983,12 @@ static void _APP_Commands_DEFAULT(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** 
 
 void _APP_Commands_about(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv) {
     SYS_CONSOLE_MESSAGE(ESC_BLUE"----- About this Build -----\r\n" ESC_RESETCOLOR\
-                        "Author/-s  : Andreas Birk Gustafson\r\n"\
+ "Author/-s  : Andreas Birk Gustafson\r\n"\
                         "Project    : ADC configuration\r\n"\
                         "Company    : Hottinger Bruel & Kjaer\r\n"\
                         "Programmed : " __DATE__ " " __TIME__ "\r\n"\
                         "Device     : SAME51J20A\r\n"\
-                        "\r\n"); 
+                        "\r\n");
 }
 
 /******************************************************************************/

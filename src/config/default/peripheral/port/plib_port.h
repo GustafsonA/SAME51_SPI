@@ -79,6 +79,11 @@
 #define SPI_MCK_PIN                  PORT_PIN_PA11
 
 /*** Macros for SPI_INT2 pin ***/
+#define SPI_INT2_Set()               (PORT_REGS->GROUP[1].PORT_OUTSET = ((uint32_t)1U << 14U))
+#define SPI_INT2_Clear()             (PORT_REGS->GROUP[1].PORT_OUTCLR = ((uint32_t)1U << 14U))
+#define SPI_INT2_Toggle()            (PORT_REGS->GROUP[1].PORT_OUTTGL = ((uint32_t)1U << 14U))
+#define SPI_INT2_OutputEnable()      (PORT_REGS->GROUP[1].PORT_DIRSET = ((uint32_t)1U << 14U))
+#define SPI_INT2_InputEnable()       (PORT_REGS->GROUP[1].PORT_DIRCLR = ((uint32_t)1U << 14U))
 #define SPI_INT2_Get()               (((PORT_REGS->GROUP[1].PORT_IN >> 14U)) & 0x01U)
 #define SPI_INT2_PIN                  PORT_PIN_PB14
 

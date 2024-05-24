@@ -21,7 +21,7 @@ Pin Number,Pin ID,Custom Name,Function,Mode, Direction,Latch,Pull Up,Pull Down,D
 24,PB11,,Available,,,,,,NORMAL
 25,PB12,,Available,,,,,,NORMAL
 26,PB13,,Available,,,,,,NORMAL
-27,PB14,SPI_INT2,EIC_EXTINT14,Digital,In,n/a,Yes,No,NORMAL
+27,PB14,SPI_INT2,GPIO,Digital,In,n/a,Yes,No,NORMAL
 28,PB15,,Available,,,,,,NORMAL
 29,PA12,,Available,,,,,,NORMAL
 30,PA13,,Available,,,,,,NORMAL

@@ -38,7 +38,7 @@
 #include "system/command/sys_command.h"
 #include "peripheral/port/plib_port.h"
 #include "peripheral/rtc/plib_rtc.h"
-#include "peripheral/eic/plib_eic.h"
+#include "packs/ATSAME51J20A_DFP/same51j20a.h"
 
 
 

@@ -5,10 +5,9 @@
         <group>
             <file>file:/C:/HBK/dev/SAME51_SPI/src/app.c</file>
             <file>file:/C:/HBK/dev/SAME51_SPI/src/app.h</file>
-            <file>file:/C:/HBK/dev/SAME51_SPI/src/config/default/initialization.c</file>
             <file>file:/C:/HBK/dev/SAME51_SPI/src/main.c</file>
-            <file>file:/C:/HBK/dev/SAME51_SPI/src/config/default/peripheral/eic/plib_eic.h</file>
-            <file>file:/C:/HBK/dev/SAME51_SPI/src/config/default/peripheral/sercom/spi_master/plib_sercom1_spi_master.c</file>
+            <file>file:/C:/HBK/dev/SAME51_SPI/src/config/default/configuration.h</file>
+            <file>file:/C:/HBK/dev/SAME51_SPI/src/config/default/peripheral/port/plib_port.h</file>
         </group>
     </open-files>
 </project-private>

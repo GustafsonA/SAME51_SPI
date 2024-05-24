@@ -296,8 +296,6 @@ void SYS_Initialize ( void* data )
 
     SERCOM5_USART_Initialize();
 
-    EIC_Initialize();
-
     RTC_Initialize();
 
 

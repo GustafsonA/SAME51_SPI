@@ -106,8 +106,8 @@ build/default/production/_ext/1171490990/interrupts.o: \
  ../src/packs/CMSIS/CMSIS/Core/Include/cmsis_compiler.h \
  ../src/config/default/device_vectors.h \
  ../src/config/default/interrupts.h ../src/config/default/definitions.h \
+ ../src/config/default/bsp/bsp.h ../src/config/default/device.h \
  ../src/config/default/peripheral/nvmctrl/plib_nvmctrl.h \
- ../src/config/default/device.h ../src/config/default/bsp/bsp.h \
  ../src/config/default/peripheral/sercom/spi_master/plib_sercom1_spi_master.h \
  ../src/config/default/peripheral/sercom/spi_master/plib_sercom_spi_master_common.h \
  ../src/config/default/peripheral/evsys/plib_evsys.h \
@@ -124,7 +124,6 @@ build/default/production/_ext/1171490990/interrupts.o: \
  ../src/config/default/peripheral/cmcc/plib_cmcc.h \
  ../src/config/default/peripheral/sercom/usart/plib_sercom5_usart.h \
  ../src/config/default/peripheral/sercom/usart/plib_sercom_usart_common.h \
- ../src/config/default/peripheral/eic/plib_eic.h \
  ../src/config/default/peripheral/rtc/plib_rtc.h \
  ../src/config/default/system/time/sys_time.h \
  ../src/config/default/system/time/sys_time_definitions.h \
@@ -159,7 +158,7 @@ build/default/production/_ext/1171490990/interrupts.o: \
  ../src/config/default/peripheral/sercom/spi_master/plib_sercom1_spi_master.h \
  ../src/config/default/system/command/sys_command.h \
  ../src/config/default/peripheral/rtc/plib_rtc.h \
- ../src/config/default/peripheral/eic/plib_eic.h
+ ../src/packs/ATSAME51J20A_DFP/same51j20a.h
 
 ../src/config/default/configuration.h:
 
@@ -379,11 +378,11 @@ build/default/production/_ext/1171490990/interrupts.o: \
 
 ../src/config/default/definitions.h:
 
-../src/config/default/peripheral/nvmctrl/plib_nvmctrl.h:
+../src/config/default/bsp/bsp.h:
 
 ../src/config/default/device.h:
 
-../src/config/default/bsp/bsp.h:
+../src/config/default/peripheral/nvmctrl/plib_nvmctrl.h:
 
 ../src/config/default/peripheral/sercom/spi_master/plib_sercom1_spi_master.h:
 
@@ -416,8 +415,6 @@ build/default/production/_ext/1171490990/interrupts.o: \
 ../src/config/default/peripheral/sercom/usart/plib_sercom5_usart.h:
 
 ../src/config/default/peripheral/sercom/usart/plib_sercom_usart_common.h:
-
-../src/config/default/peripheral/eic/plib_eic.h:
 
 ../src/config/default/peripheral/rtc/plib_rtc.h:
 
@@ -489,4 +486,4 @@ build/default/production/_ext/1171490990/interrupts.o: \
 
 ../src/config/default/peripheral/rtc/plib_rtc.h:
 
-../src/config/default/peripheral/eic/plib_eic.h:
+../src/packs/ATSAME51J20A_DFP/same51j20a.h:

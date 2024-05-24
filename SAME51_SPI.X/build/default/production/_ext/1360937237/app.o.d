@@ -118,7 +118,7 @@ build/default/production/_ext/1360937237/app.o: ../src/app.c ../src/app.h \
  ../src/config/default/system/command/sys_command.h \
  ../src/config/default/peripheral/port/plib_port.h \
  ../src/config/default/peripheral/rtc/plib_rtc.h \
- ../src/config/default/peripheral/eic/plib_eic.h
+ ../src/packs/ATSAME51J20A_DFP/same51j20a.h
 
 ../src/app.h:
 
@@ -362,4 +362,4 @@ build/default/production/_ext/1360937237/app.o: ../src/app.c ../src/app.h \
 
 ../src/config/default/peripheral/rtc/plib_rtc.h:
 
-../src/config/default/peripheral/eic/plib_eic.h:
+../src/packs/ATSAME51J20A_DFP/same51j20a.h:
